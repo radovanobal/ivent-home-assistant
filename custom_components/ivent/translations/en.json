@@ -1,0 +1,124 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "i-Vent Smart Home Settings",
+        "description": "Enter the API key from the i-Vent web interface ({api_url}). Location discovery will start automatically.",
+        "data": {
+          "api_key": "API Key"
+        }
+      },
+      "location": {
+        "title": "Select Location",
+        "description": "Multiple locations found. Please select which one to configure.",
+        "data": {
+          "location_id": "Location"
+        }
+      },
+      "reauth_confirm": {
+        "title": "i-Vent Reauthentication",
+        "description": "Please re-enter your API key to refresh the connection.",
+        "data": {
+          "api_key": "API Key"
+        }
+      },
+      "reconfigure": {
+        "title": "i-Vent Reconfiguration",
+        "description": "Update the connection details for this location.",
+        "data": {
+          "api_key": "API Key",
+          "location_id": "Location ID"
+        }
+      }
+    },
+    "error": {
+      "auth_error": "Authentication error. Check your API key.",
+      "cannot_connect": "Connection failed. Check internet connection.",
+      "no_locations": "No locations found for this API key."
+    },
+    "abort": {
+      "already_configured": "This location is already configured.",
+      "reauth_successful": "Reauthentication successful.",
+      "reconfigure_successful": "Reconfiguration successful."
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan_main": {
+        "name": "Fan"
+      }
+    },
+    "sensor": {
+      "rssi": {
+        "name": "Signal"
+      },
+      "work_mode_changed_at": {
+        "name": "Last mode change"
+      },
+      "special_mode_ends_at": {
+        "name": "Special mode ends at"
+      }
+    },
+    "binary_sensor": {
+      "problem": {
+        "name": "Device state"
+      },
+      "alive": {
+        "name": "Connectivity"
+      },
+      "filter": {
+        "name": "Filter needs cleaning"
+      }
+    },
+    "switch": {
+      "led": {
+        "name": "LED lights"
+      },
+      "buzzer": {
+        "name": "Buzzer"
+      },
+      "night1": {
+        "name": "Night mode 1"
+      },
+      "night2": {
+        "name": "Night mode 2"
+      },
+      "snooze": {
+        "name": "Snooze"
+      },
+      "boost": {
+        "name": "Boost"
+      },
+      "schedule": {
+        "name": "Schedule"
+      },
+      "reverse_flow": {
+        "name": "Reverse flow"
+      }
+    },
+    "text": {
+      "group_name": {
+        "name": "Group name"
+      },
+      "device_name": {
+        "name": "Device name"
+      }
+    },
+    "button": {
+      "delete_group": {
+        "name": "Delete group"
+      }
+    },
+    "select": {
+      "ventilation_mode": {
+        "name": "Ventilation mode"
+      },
+      "speed": {
+        "name": "Speed"
+      },
+      "move_device": {
+        "name": "Move to group"
+      }
+    }
+  }
+}
