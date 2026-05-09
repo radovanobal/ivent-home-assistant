@@ -64,9 +64,7 @@ async def test_binary_sensors_diagnostic_flags(hass: HomeAssistant, mock_config_
     # Specific Filter diagnostic sensor should be ON.
     # Resolve entity_id from unique_id to avoid coupling test to translated name slug.
     entity_registry = er.async_get(hass)
-    filter_unique_id = (
-        f"{mock_config_entry.entry_id}_AA:BB:CC:DD:EE:FF_filter"
-    )
+    filter_unique_id = "AA:BB:CC:DD:EE:FF_filter"
     filter_entry = entity_registry.async_get_entity_id(
         "binary_sensor",
         "ivent",
@@ -77,3 +75,48 @@ async def test_binary_sensors_diagnostic_flags(hass: HomeAssistant, mock_config_
     filter_state = hass.states.get(filter_entry)
     assert filter_state is not None
     assert filter_state.state == "on"
+
+async def test_problem_sensor_ignores_connectivity_status_bit(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_api_client,
+):
+    """Test that status bit 16 alone does not make the problem sensor stay on."""
+    from .conftest import MOCK_INFO_DATA
+    import copy
+
+    problem_data = copy.deepcopy(MOCK_INFO_DATA)
+    problem_data["groups"][0]["devices"][0]["alive"] = False
+    problem_data["groups"][0]["devices"][0]["status_esp"] = 16
+    mock_api_client.async_get_info.return_value = problem_data
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    problem_state = hass.states.get("binary_sensor.enota_1_device_state")
+    assert problem_state is not None
+    assert problem_state.state == "off"
+    assert problem_state.attributes.get("status_code") == 16
+
+
+async def test_registered_binary_sensors_are_added_on_setup(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_api_client,
+):
+    """Test that existing registry entries are still added as active entities."""
+    entity_registry = er.async_get(hass)
+    entity_registry.async_get_or_create(
+        "binary_sensor",
+        "ivent",
+        "AA:BB:CC:DD:EE:FF_problem",
+        suggested_object_id="enota_1_device_state",
+        config_entry=mock_config_entry,
+    )
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    problem_state = hass.states.get("binary_sensor.enota_1_device_state")
+    assert problem_state is not None
+    assert problem_state.state == "off"
