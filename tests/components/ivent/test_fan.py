@@ -40,6 +40,8 @@ async def test_fan_turn_on(hass, mock_config_entry, mock_api_client):
     args = mock_api_client.async_modify_group.call_args[0]
     assert args[0] == 1 # group_id
     assert args[1]["remote_work_mode"]["work_mode"] == "IVentRecuperation1"
+    assert args[1]["remote_work_mode"]["remote_control_speed"] == 1
+    assert args[1]["remote_work_mode"]["remote_control_work_mode"] == "Normal"
 
 async def test_fan_turn_off(hass, mock_config_entry, mock_api_client):
     """Test fan turn_off service."""
@@ -57,16 +59,16 @@ async def test_fan_turn_off(hass, mock_config_entry, mock_api_client):
     assert args[1]["remote_work_mode"]["work_mode"] == API_MODE_WORK_OFF
 
 @pytest.mark.parametrize(
-    "percentage,expected_speed",
+    "percentage,expected_work_mode,expected_speed",
     [
-        (33, "IVentRecuperation1"),
-        (34, "IVentRecuperation2"),
-        (66, "IVentRecuperation2"),
-        (67, "IVentRecuperation3"),
-        (100, "IVentRecuperation3"),
+        (33, "IVentRecuperation1", 1),
+        (34, "IVentRecuperation2", 2),
+        (66, "IVentRecuperation2", 2),
+        (67, "IVentRecuperation3", 3),
+        (100, "IVentRecuperation3", 3),
     ],
 )
-async def test_fan_turn_on_with_percentage(hass, mock_config_entry, mock_api_client, percentage, expected_speed):
+async def test_fan_turn_on_with_percentage(hass, mock_config_entry, mock_api_client, percentage, expected_work_mode, expected_speed):
     """Test fan turn_on with percentage mapping."""
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
@@ -78,7 +80,25 @@ async def test_fan_turn_on_with_percentage(hass, mock_config_entry, mock_api_cli
     )
     
     args = mock_api_client.async_modify_group.call_args[0]
-    assert args[1]["remote_work_mode"]["work_mode"] == expected_speed
+    assert args[1]["remote_work_mode"]["work_mode"] == expected_work_mode
+    assert args[1]["remote_work_mode"]["remote_control_speed"] == expected_speed
+
+
+async def test_fan_turn_on_with_bypass_preset(hass, mock_config_entry, mock_api_client):
+    """Test fan turn_on sends matching bypass mode and speed fields."""
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        'fan', 'turn_on',
+        {'entity_id': 'fan.dnevna_soba_fan', 'percentage': 100, 'preset_mode': 'Bypass'},
+        blocking=True,
+    )
+
+    args = mock_api_client.async_modify_group.call_args[0]
+    assert args[1]["remote_work_mode"]["work_mode"] == "IVentBypass3"
+    assert args[1]["remote_work_mode"]["remote_control_speed"] == 3
+    assert args[1]["remote_work_mode"]["remote_control_work_mode"] == "Bypass"
 
 
 async def test_fan_turn_on_with_zero_percentage(hass, mock_config_entry, mock_api_client):

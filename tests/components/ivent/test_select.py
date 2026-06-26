@@ -27,6 +27,10 @@ async def test_select_entities(hass: HomeAssistant, mock_config_entry, mock_api_
         blocking=True,
     )
     mock_api_client.async_modify_group.assert_called()
+    args = mock_api_client.async_modify_group.call_args
+    assert args[0][1]["remote_work_mode"]["remote_control_work_mode"] == "Bypass"
+    assert args[0][1]["remote_work_mode"]["work_mode"] == "IVentBypass1"
+    mock_api_client.async_modify_group.reset_mock()
 
     # Hitrost Select
     speed_entity = "select.dnevna_soba_speed"
@@ -42,6 +46,8 @@ async def test_select_entities(hass: HomeAssistant, mock_config_entry, mock_api_
     # Check that payload contains speed 2
     args = mock_api_client.async_modify_group.call_args
     assert args[0][1]["remote_work_mode"]["remote_control_speed"] == 2
+    assert args[0][1]["remote_work_mode"]["remote_control_work_mode"] == "Bypass"
+    assert args[0][1]["remote_work_mode"]["work_mode"] == "IVentBypass2"
 
     # Premakni v skupino Select
     move_entity = "select.enota_1_move_to_group"

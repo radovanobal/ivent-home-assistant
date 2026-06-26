@@ -118,9 +118,12 @@ class IVentFan(IVentGroupEntity, FanEntity):
         vent_mode = (
             group.remote_control_work_mode if preset_mode is None else preset_mode
         )
-        vent_mode_str = "Recuperation" if vent_mode == "Normal" else "Bypass"
-        new_work_mode = f"IVent{vent_mode_str}{speed}"
-        payload = self._prepare_payload({"work_mode": new_work_mode})
+        new_work_mode = self._work_mode_for_remote_settings(vent_mode, speed)
+        payload = self._prepare_payload({
+            "work_mode": new_work_mode,
+            "remote_control_speed": speed,
+            "remote_control_work_mode": vent_mode,
+        })
 
         updates: dict[str, Any] = {"is_on": True}
         if preset_mode is not None:
