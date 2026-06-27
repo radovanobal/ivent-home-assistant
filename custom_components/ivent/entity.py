@@ -33,9 +33,18 @@ from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, API_MODE_WORK_OFF
 from .coordinator import IVentCoordinator, IVentGroupData, IVentDeviceData
 from .api import IVentScheduleItem
+
+_WORK_MODE_BY_REMOTE_SETTINGS = {
+    ("Normal", 1): "IVentRecuperation1",
+    ("Normal", 2): "IVentRecuperation2",
+    ("Normal", 3): "IVentRecuperation3",
+    ("Bypass", 1): "IVentBypass1",
+    ("Bypass", 2): "IVentBypass2",
+    ("Bypass", 3): "IVentBypass3",
+}
 
 
 class IVentBaseEntity(CoordinatorEntity[IVentCoordinator]):
@@ -187,12 +196,67 @@ class IVentGroupEntity(IVentBaseEntity):
             "bypass_rotation": remote.get("bypass_rotation", "BypassForward"),
         }
         base.update(changes)
+
+        speed = self._normalize_remote_control_speed(base.get("remote_control_speed", 1))
+        base["remote_control_speed"] = speed
+        remote_control_work_mode = self._normalize_remote_control_work_mode(
+            base.get("remote_control_work_mode")
+        )
+        base["remote_control_work_mode"] = remote_control_work_mode
+
+        remote_settings_changed = (
+            "remote_control_speed" in changes
+            or "remote_control_work_mode" in changes
+        )
+        should_update_work_mode = (
+            remote_settings_changed and base.get("work_mode") != API_MODE_WORK_OFF
+        )
+        if should_update_work_mode:
+            base["work_mode"] = self._work_mode_for_remote_settings(
+                remote_control_work_mode, speed
+            )
         return {"remote_work_mode": base}
+
+    @staticmethod
+    def _normalize_remote_control_speed(value: Any) -> int:
+        try:
+            speed = int(value)
+        except (TypeError, ValueError):
+            return 1
+        if speed < 1:
+            return 1
+        if speed > 3:
+            return 3
+        return speed
+
+    @staticmethod
+    def _normalize_remote_control_work_mode(value: Any) -> str:
+        return "Bypass" if value == "Bypass" else "Normal"
+
+    @staticmethod
+    def _work_mode_for_remote_settings(remote_control_work_mode: Any, speed: int) -> str:
+        mode = IVentGroupEntity._normalize_remote_control_work_mode(
+            remote_control_work_mode
+        )
+        return _WORK_MODE_BY_REMOTE_SETTINGS[(mode, speed)]
 
     async def async_update_group(self, payload: Dict[str, Any]) -> None:
         """Spremeni podatke skupine preko API in osveži koordinatorja."""
         await self.coordinator.client.async_modify_group(self._group_id, payload)
+        self._apply_successful_group_write(payload)
         await self.coordinator.async_request_delayed_refresh()
+
+    def _apply_successful_group_write(self, payload: Dict[str, Any]) -> None:
+        remote_payload = payload.get("remote_work_mode")
+        if not isinstance(remote_payload, dict):
+            return
+
+        group = self._group
+        if group is None or self.coordinator.data is None:
+            return
+
+        group.raw["remote"].update(copy.deepcopy(remote_payload))
+        self.coordinator.async_set_updated_data(self.coordinator.data)
 
     def _refresh_device_info(self) -> None:
         group = self._group
